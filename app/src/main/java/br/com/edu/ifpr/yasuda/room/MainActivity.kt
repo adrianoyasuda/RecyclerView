@@ -2,17 +2,20 @@ package br.com.edu.ifpr.yasuda.room
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.widget.ArrayAdapter
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import androidx.room.Room
 import br.com.edu.ifpr.yasuda.room.db.AppDatabase
 import br.com.edu.ifpr.yasuda.room.db.dao.PersonDao
 import br.com.edu.ifpr.yasuda.room.entities.Person
+import br.com.edu.ifpr.yasuda.room.ui.PeopleAdapter
+import br.com.edu.ifpr.yasuda.room.ui.PeopleAdapterListener
 import kotlinx.android.synthetic.main.activity_main.*
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), PeopleAdapterListener {
 
     lateinit var personDao: PersonDao
-    lateinit var adapter: ArrayAdapter<Person>
+    lateinit var adapter: PeopleAdapter
     var personEditing: Person? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -30,19 +33,15 @@ class MainActivity : AppCompatActivity() {
 
         bt_save.setOnClickListener { savePerson() }
 
-        lv_people.setOnItemClickListener{ _, _, position, _ ->
-            /*val person =adapter.getItem(position) as Person
-            editPerson(person)*/
+/*        lv_people.setOnItemClickListener{ _, _, position, _ ->
             editPerson(getPersonFromList(position))
         }
 
         lv_people.setOnItemLongClickListener { _, _ ,position, _ ->
-            /*val person = adapter.getItem(position) as Person
-            personDao.remove(person)*/
             removePerson(getPersonFromList(position))
             loadData()
             true
-        }
+        }*/
 
         loadData()
     }
@@ -52,7 +51,9 @@ class MainActivity : AppCompatActivity() {
         loadData()
     }
 
+/*
     private fun getPersonFromList(position : Int) = adapter.getItem(position) as Person
+*/
 
     private fun editPerson(person: Person) {
         tf_firstName.setText(person.firstname)
@@ -76,19 +77,27 @@ class MainActivity : AppCompatActivity() {
                 person.lastname = lastName
                 person.title = title
                 personDao.update(person)
+
+                adapter.updatePerson(person)
             }
         }
         else{
-            val person = Person(firstName, lastName, title)
-            personDao.insert(person)
+            var person = Person(firstName, lastName, title)
+            val id = personDao.insert(person).toInt()
+            person = personDao.findById(id)!!
+
+            val position = adapter.addPerson(person)
+            list_people.scrollToPosition(position)
         }
-        loadData()
     }
 
     private fun loadData(){
         val people = personDao.getAll()
-        adapter = ArrayAdapter(this,android.R.layout.simple_list_item_1, people)
-        lv_people.adapter = adapter
+        adapter = PeopleAdapter(people.toMutableList(), this)
+        list_people.adapter = adapter
+
+        list_people.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
+
         cleanFields()
     }
 
@@ -98,5 +107,13 @@ class MainActivity : AppCompatActivity() {
         tf_title.text.clear()
         tf_firstName.requestFocus()
 
+    }
+
+    override fun personRemoved(person: Person) {
+        personDao.remove(person)
+    }
+
+    override fun personClicked(person: Person) {
+        editPerson(person)
     }
 }

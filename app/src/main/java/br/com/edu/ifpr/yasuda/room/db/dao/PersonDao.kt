@@ -15,7 +15,7 @@ interface PersonDao {
     fun findByName(firstName: String, lastName: String): List<Person>
 
     @Insert
-    fun  insert(person: Person)
+    fun  insert(person: Person): Long
 
     @Update
     fun  update(person: Person)
